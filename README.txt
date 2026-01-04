@@ -1,52 +1,31 @@
-/*====================================================*\
-  Arash HABIBI
-  README.txt
-\*====================================================*/
-
-Le programme plot permet de créer une image vierge et
-d'y colorier les pixels ou, éventuellement, de partir
-d'une image préexistant et de la modifier pixel par pixel.
-
-Pour compiler le programme :
-
-     make
-
-Pour travailler sur une image 800 x 600 vierge (noire) :
-
-     plot 800 600
-
-Pour travailler sur une image préexistant dans un fichier au format ppm :
-
-     plot image2.ppm
+Projet : Saisie et remplissage d’un polygone 2D
+Fondements et Algorithmes de l’Imagerie Numérique
 
 
-Ce programme permet également d'examiner l'image en zoomant sur
-un détail en particulier. Pour cela, cliquer sur le détail en
-question et presser la touche 'z' (comme zoom) autant de fois que
-nécessaire. Pour s'éloigner, presser la touche 'Z' et pour revenir
-à l'état initial, presser 'i'.
+1. Lancement du programme
+   ./plot 800 800
 
-Par ailleurs, les fonctions qui sont à votre disposition pour modifier
-les images, sont dans le fichier Image.h. En particulier :
+2. Mode append (touche a)
+   Clique gauche 2 fois dans la fenêtre pour créer une ligne brisée.
 
-// Pour créer une image vierge
-Image* I_new(int _width, int _height);
+3. Fermeture du polygone
+   Appuyer sur la touche c pour fermer la ligne brisée et former un polygone. et appuyer une seconde fois pour le réouvrir.
 
-// Pour créer une image à partir d'un fichier ppm existant :
-Image* I_read(char *ppmfilename);
+4. Remplissage scan-line
+   Appuyer sur la touche f pour remplir le polygone fermé.
 
-// Pour remplir l'image avec la couleur c
-void I_fill       (Image *img, Color c);
+5. Sélection et déplacement d’un sommet
+   Appuyer sur la touche v pour passer en mode vertex.
+   Clique gauche près d’un sommet pour le sélectionner.
+   Utiliser les flèches du clavier pour déplacer le sommet sélectionné.
 
-// Pour remplir l'image avec un damier dont les cases font step pixels
-// et sont de couleurs c1 et c2 :
-void I_checker    (Image *img, Color c1, Color c2, int step);
+6. Insertion d’un sommet sur une arête
+   Appuyer sur la touche e pour passer en mode edge.
+   Clique gauche près d’une arête pour la sélectionner.
+   Appuyer sur la touche i pour insérer un sommet au milieu de l’arête sélectionnée.
 
-// Change la couleur courante
-void I_changeColor(Image *img, Color c);
+7. Retour au mode append
+   Appuyer sur la touche a pour revenir en mode append.
 
-// Colorie le pixel x,y avec la couleur courante
-void I_plot       (Image *img, int x, int y);
-
-// Colorie le pixel x,y avec la couleur c sans changer la couleur courante
-void I_plotColor  (Image *img, int x, int y, Color c);
+8. (Optionnel) Désactiver le remplissage
+   Appuyer de nouveau sur la touche f pour enlever le remplissage.

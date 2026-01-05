@@ -1,7 +1,4 @@
-/*===============================================================*\
-    Projet : Saisie et remplissage d’un polygone 2D
-    Kit GLUT + Image (I_plotColor)
-\*===============================================================*/
+//   Projet : Saisie et remplissage d’un polygone 2D
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,7 +10,7 @@
 
 Image *img;
 
-/* ---------------------------- Données polygone ---------------------------- */
+/* ---------------------------- Donnees polygone ---------------------------- */
 
 typedef struct Vertex {
     int x, y;
@@ -25,13 +22,13 @@ typedef enum { MODE_APPEND=0, MODE_VERTEX=1, MODE_EDGE=2 } Mode;
 
 static Vertex* head = NULL;
 static Vertex* tail = NULL;
-static int closed_poly = 0;   // 0: ligne brisée ouverte, 1: polygone fermé
-static int filled = 0;        // 0: pas rempli, 1: scanline
+static int poly_ferme = 0;   //=0 => ligne brisee ouverte =1 =>polygone ferme
+static int remplissage = 0;        // =0 => pas rempli =1=> rempli
 static Mode mode = MODE_APPEND;
 
 static Vertex* selectedV = NULL;      // en mode vertex
-static Vertex* selectedE_A = NULL;    // arête sélectionnée = (A -> A->next)
-                                      // (si fermé, last->next = head)
+static Vertex* selectedE_A = NULL;    // arête selectionnee = (arrete -> arrete->next)
+                                      // si ferme last->next = head
 
 
 // ---- Prototypes ----
@@ -40,7 +37,7 @@ static int V_count(void);
 static void update_circular_links(void);
 static void append_vertex(int x, int y);
 static void remove_vertex(Vertex* v);
-static void insert_vertex_after(Vertex* a, Vertex* newv);
+static void insert_vertex(Vertex* a, Vertex* newv);
 
 
 /* ---------------------------- Couleurs ---------------------------- */
@@ -67,14 +64,14 @@ static int V_count(void) {
     while (v) {
         n++;
         v = v->next;
-        if (closed_poly && v == head) break;
+        if (poly_ferme && v == head) break;
     }
     return n;
 }
 
 static void update_circular_links(void) {
     if (!head) { tail = NULL; return; }
-    if (!closed_poly) {
+    if (!poly_ferme) {
         // recalc tail
         Vertex* v = head;
         while (v->next) v = v->next;
@@ -91,7 +88,7 @@ static void update_circular_links(void) {
     }
 }
 
-static void insert_vertex_after(Vertex* a, Vertex* newv) {
+static void insert_vertex(Vertex* a, Vertex* newv) {
     if (!a || !newv) return;
     Vertex* b = a->next;
 
@@ -100,7 +97,7 @@ static void insert_vertex_after(Vertex* a, Vertex* newv) {
     newv->next = b;
     if (b) b->prev = newv;
 
-    if (!closed_poly) {
+    if (!poly_ferme) {
         if (tail == a) tail = newv;
     } else {
         if (a == tail) tail = newv;
@@ -116,15 +113,15 @@ static void append_vertex(int x, int y) {
         head = tail = v;
         selectedV = head;
         selectedE_A = head;
-        if (closed_poly) update_circular_links();
+        if (poly_ferme) update_circular_links();
         return;
     }
-    if (!closed_poly) {
+    if (!poly_ferme) {
         tail->next = v;
         v->prev = tail;
         tail = v;
     } else {
-        // insère avant head (à la fin)
+        // insere avant head
         Vertex* old_tail = head->prev;
         old_tail->next = v;
         v->prev = old_tail;
@@ -139,32 +136,30 @@ static void remove_vertex(Vertex* v) {
 
     int n = V_count();
 
-    // Cas 1 : il n'y a qu'un seul sommet
+    // soit il n'y a qu'un seul sommet:
     if (n == 1) {
         free(v);
         head = tail = NULL;
         selectedV = NULL;
         selectedE_A = NULL;
-        closed_poly = 0;
-        filled = 0;
+        poly_ferme = 0;
+        remplissage = 0;
         return;
     }
 
-    // Cas 2 : on va supprimer et il restera 1 sommet
+    // soit on supprime et il restera 1 sommet
     if (n == 2) {
-        Vertex* other = (v == head) ? (closed_poly ? v->next : head->next) : head;
+        Vertex* other = (v == head) ? (poly_ferme ? v->next : head->next) : head;
 
-        // si fermé, other peut être head/next selon où on est
-        if (closed_poly) {
+        // si ferme other sera head ou next selon ou on est
+        if (poly_ferme) {
             other = (v->next != v) ? v->next : v->prev;
         } else {
             other = (v == head) ? head->next : head;
         }
-
-        // libérer v
         free(v);
 
-        // reconstruire une liste ouverte avec le seul sommet restant
+        // reconstruction de la liste ouverte avec le seul sommet restant
         head = other;
         head->prev = NULL;
         head->next = NULL;
@@ -173,16 +168,16 @@ static void remove_vertex(Vertex* v) {
         selectedV = head;
         selectedE_A = head;
 
-        closed_poly = 0;
-        filled = 0;
+        poly_ferme = 0;
+        remplissage = 0;
         return;
     }
 
-    // Cas général : n >= 3
+    //si n est sup ou egal a 3:
     Vertex* nextSel = v->next;
-    if (!nextSel) nextSel = v->prev; // sécurité (ouvert)
+    if (!nextSel) nextSel = v->prev;
 
-    if (!closed_poly) {
+    if (!poly_ferme) {
         // liste ouverte
         if (v == head) {
             head = v->next;
@@ -196,29 +191,27 @@ static void remove_vertex(Vertex* v) {
         }
         free(v);
     } else {
-        // liste fermée circulaire
+        // liste fermee circulaire
         if (v == head) head = v->next;
-
         v->prev->next = v->next;
         v->next->prev = v->prev;
         free(v);
 
-        // recalcul tail (dernier avant head)
+        // on recalcul tail
         tail = head->prev;
         tail->next = head;
         head->prev = tail;
     }
 
-    // Mise à jour des sélections
+    // maj de la selection
     selectedV = nextSel;
-    if (closed_poly) selectedE_A = selectedV; 
+    if (poly_ferme) selectedE_A = selectedV; 
     else selectedE_A = head;
-    // Si après suppression on a moins de 3 sommets, on ne peut plus être "fermé"
+    // si apres la suppression on a moins de 3 sommets
+    // notre polygone ne peut plus être "ferme"
     if (V_count() < 3) {
-        closed_poly = 0;
-        filled = 0;
-
-        // casser la circularité proprement si besoin
+        poly_ferme = 0;
+        remplissage = 0;
         if (head && head->prev) {
             tail = head->prev;
             head->prev = NULL;
@@ -256,12 +249,28 @@ static void draw_selected_vertex_marker(Vertex* v) {
     }
 }
 
+static void draw_texte(int x, int y, const char* texte){
+    glColor3f(1.0f,1.0f,1.0f);
+    glRasterPos2i(x,y);
+    for(const char* c= texte; *c !='\0'; c++){
+        glutBitmapCharacter(GLUT_BITMAP_8_BY_13,*c);
+    }
+}
+
+static const char* mode_texte(void){
+    switch(mode){
+        case MODE_APPEND: return "Mode: Append";
+        case MODE_VERTEX: return "Mode: Vertex";
+        case MODE_EDGE: return "Mode: Edge";
+        default: return "Mode:";
+    }
+}
+
 /* ---------------------------- Remplissage scan-line ---------------------------- */
 
 static int edge_intersects_scanline(Vertex* a, Vertex* b, int y) {
-    // on ignore horizontales
+    // on ignore horizontale
     if (a->y == b->y) return 0;
-    // règle classique : y dans [ymin, ymax)
     int ymin = (a->y < b->y) ? a->y : b->y;
     int ymax = (a->y > b->y) ? a->y : b->y;
     return (y >= ymin && y < ymax);
@@ -274,7 +283,7 @@ static int cmp_int(const void* p1, const void* p2) {
 }
 
 static void fill_scanline(void) {
-    if (!closed_poly || !head) return;
+    if (!poly_ferme || !head) return;
     int n = V_count();
     if (n < 3) return;
 
@@ -284,14 +293,12 @@ static void fill_scanline(void) {
         if (v->y < ymin) ymin = v->y;
         if (v->y > ymax) ymax = v->y;
         v = v->next;
-        if (closed_poly && v == head) break;
+        if (poly_ferme && v == head) break;
     }
-
-    // borne sécurité
     if (ymin < 0) ymin = 0;
     if (ymax >= img->_height) ymax = img->_height - 1;
 
-    // Pour chaque scanline y, on collecte les intersections
+    // Pour chaque "scanline y" on prend les intersection
     for (int y = ymin; y <= ymax; y++) {
         int xs_capacity = 64;
         int xs_count = 0;
@@ -300,10 +307,9 @@ static void fill_scanline(void) {
         Vertex* a = head;
         while (a) {
             Vertex* b = a->next;
-            if (!b) break; // ouvert (ne devrait pas arriver si closed_poly)
+            if (!b) break; // ouvert ne devrait pas arriver si poly_ferme
 
             if (edge_intersects_scanline(a, b, y)) {
-                // x = x1 + (y - y1)*(x2-x1)/(y2-y1)
                 double t = (double)(y - a->y) / (double)(b->y - a->y);
                 double x = a->x + t * (double)(b->x - a->x);
                 int xi = (int)lround(x);
@@ -316,7 +322,7 @@ static void fill_scanline(void) {
             }
 
             a = a->next;
-            if (closed_poly && a == head) break;
+            if (poly_ferme && a == head) break;
         }
 
         if (xs_count >= 2) {
@@ -339,7 +345,7 @@ static void fill_scanline(void) {
     }
 }
 
-/* ---------------------------- Sélection souris : distances ---------------------------- */
+/* ---------------------------- Selection souris : distances ---------------------------- */
 
 static double dist2(double ax, double ay, double bx, double by) {
     double dx = ax - bx, dy = ay - by;
@@ -356,7 +362,7 @@ static Vertex* closest_vertex(int x, int y) {
         double d = dist2(x,y, v->x, v->y);
         if (d < bestd) { bestd = d; best = v; }
         v = v->next;
-        if (closed_poly && v == head) break;
+        if (poly_ferme && v == head) break;
     }
     return best;
 }
@@ -374,10 +380,10 @@ static double point_segment_dist2(double px, double py, double ax, double ay, do
     return dist2(px,py, projx,projy);
 }
 
-static Vertex* closest_edge_A(int x, int y) {
-    // renvoie A tel que l'arête est (A -> A->next)
+static Vertex* closest_edge(int x, int y) {
+    // renvoie A tel que l'arrete est (arrete -> arrete->next)
     if (!head) return NULL;
-    if (!closed_poly && !head->next) return NULL;
+    if (!poly_ferme && !head->next) return NULL;
 
     Vertex* bestA = head;
     Vertex* a = head;
@@ -395,7 +401,7 @@ static Vertex* closest_edge_A(int x, int y) {
         if (d < bestd) { bestd = d; bestA = a; }
 
         a = a->next;
-        if (closed_poly && a == head) break;
+        if (poly_ferme && a == head) break;
     }
 
     return bestA;
@@ -408,12 +414,9 @@ static void redraw_scene(void) {
 
     if (!head) return;
 
-    // 1) Fill (si demandé)
-    if (filled && closed_poly) {
+    if (remplissage && poly_ferme) {
         fill_scanline();
     }
-
-    // 2) Edges
     Vertex* v = head;
     while (v) {
         Vertex* w = v->next;
@@ -425,10 +428,8 @@ static void redraw_scene(void) {
         draw_line_bresenham(v->x, v->y, w->x, w->y, c);
 
         v = v->next;
-        if (closed_poly && v == head) break;
+        if (poly_ferme && v == head) break;
     }
-
-    // 3) Marker sélection vertex
     if (mode == MODE_VERTEX) draw_selected_vertex_marker(selectedV);
 }
 
@@ -438,6 +439,7 @@ void display_CB(void) {
     glClear(GL_COLOR_BUFFER_BIT);
     redraw_scene();
     I_draw(img);
+    draw_texte(10, img->_height-20,mode_texte());
     glutSwapBuffers();
 }
 
@@ -451,19 +453,18 @@ void mouse_CB(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON) {
         if (mode == MODE_APPEND) {
             append_vertex(xi, yi);
-            // update selection defaults
             if (!selectedV) selectedV = tail ? tail : head;
             if (!selectedE_A) selectedE_A = head;
         } else if (mode == MODE_VERTEX) {
             selectedV = closest_vertex(xi, yi);
         } else if (mode == MODE_EDGE) {
-            selectedE_A = closest_edge_A(xi, yi);
+            selectedE_A = closest_edge(xi, yi);
         }
     }
 
     if (button == GLUT_MIDDLE_BUTTON) {
         if (mode == MODE_EDGE && selectedE_A && selectedE_A->next) {
-            // coupe l'arête : insère un sommet au milieu
+            // on coupe l'arête en 2 et insere un sommet au milieu
             Vertex* a = selectedE_A;
             Vertex* b = a->next;
 
@@ -471,11 +472,11 @@ void mouse_CB(int button, int state, int x, int y) {
             int my = (a->y + b->y) / 2;
 
             Vertex* nv = V_new(mx, my);
-            insert_vertex_after(a, nv);
+            insert_vertex(a, nv);
 
-            // après insertion, on peut sélectionner le nouveau sommet / nouvelle arête
+            // apres insertion on peut selectionner le nouveau sommet
             selectedV = nv;
-            selectedE_A = a; // arête (a->nv)
+            selectedE_A = a;
         }
     }
 
@@ -501,11 +502,10 @@ void keyboard_CB(unsigned char key, int x, int y) {
 				int my = (a->y + b->y) / 2;
 
 				Vertex* nv = V_new(mx, my);
-				insert_vertex_after(a, nv);
+				insert_vertex(a, nv);
 
-				// Stabilise la sélection après insertion :
 				selectedV = nv;
-				selectedE_A = nv; // maintenant l'arête sélectionnée devient (nv -> b)
+				selectedE_A = nv; // maintenant l'arrete selectionnee devient (nv -> b)
 			}
 			break;
 
@@ -513,14 +513,13 @@ void keyboard_CB(unsigned char key, int x, int y) {
 			if (!head) break;
 			int n = V_count();
 		
-			if (!closed_poly) {
+			if (!poly_ferme) {
 				if (n >= 3) {
-					closed_poly = 1;
+					poly_ferme = 1;
 					update_circular_links();
 				}
 			} else {
-				// OUVERTURE : on casse la circularité
-				closed_poly = 0;
+				poly_ferme = 0;
 		
 				if (head && head->prev) {
 					tail = head->prev;
@@ -528,33 +527,32 @@ void keyboard_CB(unsigned char key, int x, int y) {
 					tail->next = NULL;
 				}
 		
-				filled = 0; // sécurité
+				remplissage = 0;
 			}
 		} break;
 
         case 'f': {
-            if (closed_poly && V_count() >= 3) filled = !filled;
+            if (poly_ferme && V_count() >= 3) remplissage = !remplissage;
         } break;
 
-        case 8:      // Backspace
-		case 'x':    // touche secours
+        case 8:      // backspace
+		case 'x':    // touche de secours si backspace nn reconnu
 		case 'X':
 			if (mode == MODE_VERTEX && selectedV) {
 				remove_vertex(selectedV);
-				if (V_count() < 3 && closed_poly) {
-					closed_poly = 0;
+				if (V_count() < 3 && poly_ferme) {
+					poly_ferme = 0;
 					update_circular_links();
 				}
 			}break;
         case 127: {
             if (mode == MODE_VERTEX && selectedV) {
                 remove_vertex(selectedV);
-                if (V_count() < 3 && closed_poly) { closed_poly = 0; update_circular_links(); }
+                if (V_count() < 3 && poly_ferme) { poly_ferme = 0; update_circular_links(); }
             }
         } break;
 
         default:
-            // autres touches ignorées
             break;
     }
 
@@ -567,7 +565,7 @@ void special_CB(int key, int x, int y) {
     int step = 5;
 
     switch (key) {
-        // déplacement du sommet sélectionné
+        // deplacement du sommet selectionne
         case GLUT_KEY_UP:
             if (mode == MODE_VERTEX && selectedV) selectedV->y += step;
             break;
@@ -581,24 +579,23 @@ void special_CB(int key, int x, int y) {
             if (mode == MODE_VERTEX && selectedV) selectedV->x += step;
             break;
 
-        // navigation (page up / page down)
         case GLUT_KEY_PAGE_UP:
             if (mode == MODE_VERTEX && selectedV) {
                 if (selectedV->prev) selectedV = selectedV->prev;
-                else if (!closed_poly) selectedV = tail;
+                else if (!poly_ferme) selectedV = tail;
             } else if (mode == MODE_EDGE && selectedE_A) {
                 if (selectedE_A->prev) selectedE_A = selectedE_A->prev;
-                else if (!closed_poly) selectedE_A = tail ? tail->prev : head;
+                else if (!poly_ferme) selectedE_A = tail ? tail->prev : head;
             }
             break;
 
         case GLUT_KEY_PAGE_DOWN:
             if (mode == MODE_VERTEX && selectedV) {
                 if (selectedV->next) selectedV = selectedV->next;
-                else if (!closed_poly) selectedV = head;
+                else if (!poly_ferme) selectedV = head;
             } else if (mode == MODE_EDGE && selectedE_A) {
-                if (selectedE_A->next && (closed_poly || selectedE_A->next->next)) selectedE_A = selectedE_A->next;
-                else if (!closed_poly) selectedE_A = head;
+                if (selectedE_A->next && (poly_ferme || selectedE_A->next->next)) selectedE_A = selectedE_A->next;
+                else if (!poly_ferme) selectedE_A = head;
             }
             break;
 
@@ -629,7 +626,6 @@ int main(int argc, char **argv) {
         img = I_new(largeur, hauteur);
     }
 
-    // couleurs (dans ton kit, Color est float, mais ça marche pareil)
     COL_BG        = C_new(0.05f, 0.05f, 0.08f);
     COL_EDGE      = C_new(0.95f, 0.95f, 0.95f);
     COL_EDGE_SEL  = C_new(1.00f, 0.30f, 0.20f);

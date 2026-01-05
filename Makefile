@@ -1,19 +1,25 @@
+CC = gcc
 
+CFLAGS = -Wall
+CFLAGS_PPM = -Wall -Wno-unused-function
 
-CC=gcc
+LFLAGS = -L/usr/lib -lm -lGL -lglut
 
-CFLAGS=-Wall
-LFLAGS=-L/usr/lib -lm -lGL -lglut
+EXEC = plot
 
-EXEC=plot
-SRCS=$(wildcard *.c)
-OBJS=$(SRCS:.c=.o)
+OBJS = main.o Image.o Ppm.o
 
-$(EXEC) : $(OBJS)
+$(EXEC): $(OBJS)
 	$(CC) $^ -o $@ $(LFLAGS)
 
-%.o : %.c
-	$(CC) -c $^ -o $@ $(CFLAGS)
+main.o: main.c
+	$(CC) -c $< -o $@ $(CFLAGS)
 
-clean :
-	/bin/rm $(EXEC) *.o
+Image.o: Image.c
+	$(CC) -c $< -o $@ $(CFLAGS)
+
+Ppm.o: Ppm.c
+	$(CC) -c $< -o $@ $(CFLAGS_PPM)
+
+clean:
+	/bin/rm -f $(EXEC) *.o

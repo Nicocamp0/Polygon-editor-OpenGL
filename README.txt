@@ -5,7 +5,9 @@ Projet : Saisie et remplissage d’un polygone 2D, Fondements et Algorithmes de 
    ./plot 800 800
 
 - Mode append
-   mode par default, si on est dna sun autre mode appuyer sur a pour revenir au mode append.
+   Le programme démarre en mode append.
+   Si l’on est dans un autre mode, appuyer sur la touche a pour revenir
+   au mode append.
    Clique gauche dans la fenêtre pour créer une ligne brisée.
 
 - Fermeture du polygone
@@ -18,8 +20,9 @@ Projet : Saisie et remplissage d’un polygone 2D, Fondements et Algorithmes de 
    Appuyer sur la touche v pour passer en mode vertex.
    Clique gauche près d’un sommet pour le sélectionner.
    Utiliser les flèches du clavier pour déplacer le sommet sélectionné.
-   Cliquer sur 'backspace' ou sur x pour supprimer un sommet. (x ajouté car 'backspace  
-   parfois non reconnu sur vm)
+   Appuyer sur la touche backspace ou sur x pour supprimer un sommet
+   (la touche x a été ajoutée car backspace peut ne pas être reconnue
+   sur certaines machines virtuelles).
 
 - Insertion d’un sommet sur une arête
    Appuyer sur la touche e pour passer en mode edge.
